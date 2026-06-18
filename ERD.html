@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Airline Reservation System - ERD</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'default',
+            themeVariables: {
+                fontSize: '12px' 
+            }
+        });
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .mermaid-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+        }
+        .mermaid svg {
+            min-width: 1400px;
+            height: auto;
+        }
+        .mermaid text {
+            font-size: 12px !important;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Airline Reservation System Schema Design</h1>
+    
+    <div class="mermaid-container">
+        <div class="mermaid">
+        erDiagram
+            %% Group A - Customer Profiles & Loyalty
+            loyalty_tier {
+                INT tier_id PK
+                VARCHAR tier_name UK
+                INT min_points
+                INT max_points
+                TEXT benefits_description
+            }
+            passenger {
+                INT passenger_id PK
+                VARCHAR full_name
+                VARCHAR passport_number UK
+                CHAR nationality
+                DATE date_of_birth
+                VARCHAR email UK
+                VARCHAR phone
+                VARCHAR frequent_flyer_number UK
+                INT loyalty_tier_id FK
+            }
+
+            %% Group B - Geographic Assets & Route Lines
+            country {
+                CHAR country_code PK
+                VARCHAR country_name UK
+            }
+            city {
+                INT city_id PK
+                VARCHAR city_name
+                CHAR country_code FK
+            }
+            airport {
+                INT airport_id PK
+                CHAR iata_code UK
+                CHAR icao_code UK
+                VARCHAR airport_name
+                INT city_id FK
+                VARCHAR timezone
+            }
+            route {
+                INT route_id PK
+                INT origin_airport_id FK
+                INT destination_airport_id FK
+                INT distance_km
+            }
+
+            %% Group C - Fleet Configuration & Scheduling
+            aircraft_model {
+                INT model_id PK
+                VARCHAR model_name
+                VARCHAR manufacturer
+                INT total_seat_capacity
+                TEXT seat_layout_description
+            }
+            aircraft {
+                INT aircraft_id PK
+                VARCHAR tail_number UK
+                INT model_id FK
+                INT manufacture_year
+                VARCHAR status
+            }
+            flight {
+                INT flight_id PK
+                VARCHAR flight_number
+                INT route_id FK
+                INT aircraft_id FK
+                DATETIME scheduled_departure
+                DATETIME scheduled_arrival
+                VARCHAR status
+                VARCHAR gate
+                VARCHAR terminal
+            }
+
+            %% Group D - Inventory Layout & Fare Classes
+            fare_class {
+                INT fare_class_id PK
+                VARCHAR class_name UK
+                INT baggage_allowance_kg
+                TEXT refund_policy
+                TEXT change_policy
+                TINYINT meal_service
+            }
+            seat {
+                INT seat_id PK
+                INT flight_id FK
+                VARCHAR seat_number
+                INT fare_class_id FK
+                VARCHAR availability_status
+                DATETIME hold_expires_at
+                VARCHAR seat_features
+            }
+
+            %% Group E - Core Order Layers & Financial Tracking
+            pnr_group {
+                INT pnr_id PK
+                CHAR pnr_code UK
+                INT lead_passenger_id FK
+                VARCHAR contact_email
+                VARCHAR contact_phone
+                DATETIME created_at
+            }
+            booking {
+                INT booking_id PK
+                INT pnr_id FK
+                INT passenger_id FK
+                INT flight_id FK
+                INT seat_id FK
+                INT fare_class_id FK
+                DATETIME booking_datetime
+                VARCHAR ticket_number UK
+                VARCHAR source_channel
+                VARCHAR external_booking_ref
+                INT rescheduled_from_id FK
+            }
+            booking_status {
+                INT status_id PK
+                INT booking_id FK
+                VARCHAR status
+                DATETIME changed_at
+                TEXT changed_reason
+            }
+            payment {
+                INT payment_id PK
+                INT pnr_id FK
+                DECIMAL amount
+                CHAR currency
+                VARCHAR payment_method
+                VARCHAR payment_status
+                DATETIME transaction_datetime
+            }
+            refund {
+                INT refund_id PK
+                INT payment_id FK
+                DECIMAL refund_amount
+                VARCHAR refund_status
+                DATETIME refund_datetime
+                TEXT refund_reason
+            }
+
+            %% Group F - Ground Logistics & Operational States
+            checkin {
+                INT checkin_id PK
+                INT booking_id FK
+                DATETIME checkin_datetime
+                VARCHAR checkin_channel
+                VARCHAR boarding_pass_number UK
+                VARCHAR boarding_status
+                DATETIME boarding_time
+                VARCHAR gate_used
+            }
+            baggage {
+                INT baggage_id PK
+                INT booking_id FK
+                VARCHAR bag_tag_number UK
+                DECIMAL weight_kg
+                VARCHAR baggage_type
+                VARCHAR status
+                DECIMAL excess_fee
+            }
+            special_service_request {
+                INT ssr_id PK
+                INT booking_id FK
+                VARCHAR service_type
+                TEXT service_details
+                VARCHAR fulfilment_status
+            }
+
+            %% Group G - Flight Operations & Crew Telemetry
+            crew {
+                INT crew_id PK
+                VARCHAR full_name
+                VARCHAR licence_number UK
+                VARCHAR role
+                VARCHAR availability_status
+            }
+            crew_assignment {
+                INT assignment_id PK
+                INT flight_id FK
+                INT crew_id FK
+                VARCHAR assigned_role
+                DATETIME assignment_datetime
+                DECIMAL duty_hours_logged
+            }
+            delay_record {
+                INT delay_id PK
+                INT flight_id FK
+                VARCHAR delay_reason_code
+                INT delay_minutes
+                DATETIME actual_departure
+                DATETIME actual_arrival
+                TINYINT notification_sent
+            }
+
+            %% Relationships
+            loyalty_tier ||--o{ passenger : "has"
+            country ||--o{ city : "contains"
+            city ||--o{ airport : "houses"
+            airport ||--o{ route : "originates"
+            airport ||--o{ route : "destinates"
+            aircraft_model ||--o{ aircraft : "blueprints"
+            route ||--o{ flight : "scheduled as"
+            aircraft ||--o{ flight : "operates"
+            flight ||--o{ seat : "contains"
+            fare_class ||--o{ seat : "defines rules for"
+            
+            passenger ||--o{ pnr_group : "lead passenger"
+            pnr_group ||--|{ booking : "contains"
+            passenger ||--o{ booking : "travels on"
+            flight ||--o{ booking : "booked for"
+            seat ||--o| booking : "assigned to"
+            fare_class ||--o{ booking : "snapshotted at"
+            booking |o--o{ booking : "rescheduled from"
+            
+            booking ||--o{ booking_status : "tracked by"
+            pnr_group ||--o{ payment : "paid via"
+            payment ||--o{ refund : "reversed by"
+            
+            booking ||--o| checkin : "has"
+            booking ||--o{ baggage : "checks"
+            booking ||--o{ special_service_request : "requests"
+            
+            flight ||--o{ crew_assignment : "staffed by"
+            crew ||--o{ crew_assignment : "assigned to"
+            flight ||--o{ delay_record : "experiences"
+        </div>
+    </div>
+
+</body>
+</html>
