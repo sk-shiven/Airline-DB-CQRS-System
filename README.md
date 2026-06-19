@@ -34,7 +34,7 @@ To solve the classic database trade-off between strict normalization (which degr
 
 ## 🗄️ Core Database Indexing Strategy
 
-To support high-frequency transactions and the CQRS read-model build process, the following custom B-Tree and Hash indexes are deployed:
+To support high-frequency transactions and the CQRS read-model build process, the following custom B-Tree indexes (with InnoDB adaptive hash in memory):
 
 ```sql
 -- Query 1: Accelerates structural route flight selection loops
@@ -47,7 +47,7 @@ CREATE INDEX idx_seat_inventory_lookup ON Seat (flight_id, availability_status) 
 CREATE INDEX idx_checkin_boarding_alert ON CheckIn (boarding_status) WHERE boarding_status = 'checked_in';
 
 -- Query 4: High-speed point lookup hash indexing for PNR references
-CREATE UNIQUE INDEX idx_pnr_code_hash ON PNR_Group USING hash (pnr_code);
+CREATE UNIQUE INDEX idx_pnr_code ON pnr_group (pnr_code);
 
 -- Query 5: Filters and isolates major disruption metrics across schedules
 CREATE INDEX idx_flight_delay_tracking ON DelayRecord (delay_minutes) WHERE delay_minutes > 120;
